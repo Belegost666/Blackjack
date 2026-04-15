@@ -34,13 +34,13 @@
         .btn-outline { background: transparent; border: 2px solid var(--gold); color: var(--gold); }
         
         .token { 
-            display: inline-block; width: 40px; height: 40px; background: radial-gradient(circle, #f9d976, #b28a15);
-            border-radius: 50%; border: 2px dashed #fff; margin: 5px; cursor: pointer;
-            box-shadow: 0 4px 0 #86650a; transition: 0.2s;
+            display: inline-block; width: 50px; height: 50px; background: radial-gradient(circle, #f9d976, #b28a15);
+            border-radius: 50%; border: 3px dashed #fff; margin: 10px; cursor: pointer;
+            box-shadow: 0 5px 0 #86650a; transition: 0.2s;
         }
         .token:active { transform: translateY(4px); box-shadow: none; }
         
-        .log-box { font-size: 0.9rem; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 15px; min-height: 40px; }
+        .log-box { font-size: 1rem; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; margin-top: 15px; min-height: 50px; border: 1px solid var(--dark-gold); }
         #timer { font-size: 3.5rem; color: var(--gold); margin: 20px 0; }
         .hidden { display: none; }
     </style>
@@ -88,12 +88,12 @@
         <h3>TIRAGE DES JETONS</h3>
         <p id="token-instruction">Clique sur un jeton pour tenter ta chance</p>
         <div id="tokens-container"></div>
-        <div id="draw-log" class="log-box"></div>
+        <div id="draw-log" class="log-box">Prêt à tirer ?</div>
         <button id="final-btn" class="btn btn-gold hidden" onclick="startSentence()">VOIR MA SENTENCE</button>
     </div>
 
     <div id="sentence" class="hidden">
-        <p id="final-text"></p>
+        <p id="final-text" style="font-size: 1.2rem; padding: 10px;"></p>
         <div id="timer">0:00</div>
         <button class="btn btn-outline" onclick="location.reload()">REJOUER</button>
     </div>
@@ -101,7 +101,7 @@
 
 <script>
     let totalTime = 0, currentHand = 1, totalHands = 0, tokens = 0;
-    let deck = [], playerHand = [], bankHand = [], hasDoubled = false;
+    let deck = [], playerHand = [], bankHand = [], hasDoubled = false, wonOrgasme = false;
 
     function startSession(min, hands) {
         totalTime = min; totalHands = hands;
@@ -168,47 +168,41 @@
         let log = "";
         let winToken = false;
 
-        // LOGIQUE DE CALCUL DU TEMPS ET DES JETONS
         if (p > 21) {
             log = "BURST ! Malus double.";
             diff = (p - 21) * 2;
-            winToken = false; // Jamais de jeton si le joueur saute
         } 
         else if (b > 21) {
             log = "BANQUE BURST ! +1 Jeton";
             diff = -((b - 21) * 2);
-            winToken = true; // Jeton car banque saute
+            winToken = true; 
         } 
         else if (p === 21) {
             if (b === 21) {
                 log = "DOUBLE 21 ! Jeton annulé +2min.";
                 diff = 2;
-                winToken = false; // La banque annule le jeton si elle a 21
             } else {
                 log = "21 ! +1 Jeton.";
-                winToken = true; // Joueur fait 21
+                winToken = true;
                 diff = b - 21;
             }
         } 
         else if (b === 21) {
             log = "BANQUE 21 ! Malus x2.";
             diff = (21 - p) * 2;
-            winToken = false;
         } 
         else {
             if (p > b) {
                 log = "Gagné ! +1 Jeton";
                 diff = b - p;
-                winToken = true; // Joueur bat la banque
+                winToken = true;
             } else {
                 log = "Perdu...";
                 diff = b - p;
-                winToken = false;
             }
         }
 
         if(winToken) tokens++;
-        
         totalTime += diff;
         if(totalTime < 1) totalTime = 1;
         updateStats();
@@ -221,7 +215,7 @@
             } else {
                 finishGame();
             }
-        }, 2500);
+        }, 2200);
     }
 
     function updateStats() {
@@ -250,30 +244,34 @@
 
     function useToken(id) {
         const tokenElem = document.getElementById(`t-${id}`);
-        if(!tokenElem || tokenElem.style.opacity === "0.3") return;
+        if(!tokenElem || tokenElem.style.opacity === "0.3" || wonOrgasme) return;
         
         tokenElem.style.opacity = "0.3";
         tokenElem.style.pointerEvents = "none";
 
-        let rand = Math.random();
+        let rand = Math.random() * 100; // Utilisation d'une base 100 plus claire
         let log = document.getElementById('draw-log');
 
-        if(rand < 0.1) { // 10% Gagner le droit de jouir
-            log.innerHTML = "<h3 style='color:#0f0'>DROIT DE JOUIR OBTENU !</h3>";
-            tokens = 0; // Annule les autres
-            document.getElementById('tokens-container').innerHTML = "";
+        if(rand <= 10) { // 10% Chance de gagner
+            wonOrgasme = true;
+            log.innerHTML = "<h2 style='color:#0f0'>DROIT DE JOUIR !</h2>";
+            document.getElementById('tokens-container').style.opacity = "0.3";
             showFinalBtn(true);
-        } else if (!hasDoubled && rand < 0.4) { // 30% Double temps
+        } 
+        else if (!hasDoubled && rand > 10 && rand <= 40) { // 30% de chance de doubler (si pas déjà fait)
             hasDoubled = true;
             totalTime *= 2;
-            log.innerHTML = "<h3 style='color:#f00'>TEMPS DOUBLÉ !</h3>";
             updateStats();
-        } else { // 60% Rien
-            log.innerHTML = "Rien du tout...";
+            log.innerHTML = "<h2 style='color:#f00'>TEMPS DOUBLÉ !</h2>";
+        } 
+        else {
+            log.innerHTML = "<span style='color:#ccc'>Rien sur ce jeton...</span>";
         }
 
         let remaining = Array.from(document.querySelectorAll('.token')).filter(t => t.style.opacity !== "0.3");
-        if(remaining.length === 0 || tokens === 0) showFinalBtn(tokens === 0);
+        if(remaining.length === 0 || wonOrgasme) {
+            setTimeout(() => showFinalBtn(wonOrgasme), 500);
+        }
     }
 
     function showFinalBtn(isWinner) {
@@ -284,19 +282,18 @@
 
     function startSentence() {
         document.getElementById('token-phase').classList.add('hidden');
-        document.getElementById('game').classList.add('hidden');
         document.getElementById('sentence').classList.remove('hidden');
         
         const isWinner = document.getElementById('final-btn').getAttribute('data-win') === "true";
         const textElem = document.getElementById('final-text');
         
         if(isWinner) {
-            textElem.innerHTML = `Bravo ! Tu as <span style="color:var(--gold)">${totalTime} minutes</span> pour jouir. Si tu échoues, tu dois rejouer.`;
+            textElem.innerHTML = `🔥 <strong>VICTOIRE !</strong> 🔥<br>Tu as <span style="color:var(--gold)">${Math.round(totalTime)} minutes</span> pour jouir. Profites-en, tu l'as mérité !`;
         } else {
-            textElem.innerHTML = `Tu as perdu ! Masturbation sans jouir pendant <span style="color:var(--gold)">${totalTime} minutes</span>.`;
+            textElem.innerHTML = `💀 <strong>SENTENCE</strong> 💀<br>Tu as perdu tes jetons. Masturbation sans jouir pendant <span style="color:var(--gold)">${Math.round(totalTime)} minutes</span>.`;
         }
 
-        let left = totalTime * 60;
+        let left = Math.round(totalTime) * 60;
         const tElem = document.getElementById('timer');
         let countdown = setInterval(() => {
             let m = Math.floor(left/60), s = left%60;
