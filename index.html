@@ -166,30 +166,49 @@
         const b = getScore(bankHand);
         let diff = 0;
         let log = "";
+        let winToken = false;
 
+        // LOGIQUE DE CALCUL DU TEMPS ET DES JETONS
         if (p > 21) {
             log = "BURST ! Malus double.";
             diff = (p - 21) * 2;
-        } else if (b > 21) {
-            log = "BANQUE BURST !";
+            winToken = false; // Jamais de jeton si le joueur saute
+        } 
+        else if (b > 21) {
+            log = "BANQUE BURST ! +1 Jeton";
             diff = -((b - 21) * 2);
-        } else if (p === 21) {
+            winToken = true; // Jeton car banque saute
+        } 
+        else if (p === 21) {
             if (b === 21) {
                 log = "DOUBLE 21 ! Jeton annulé +2min.";
                 diff = 2;
+                winToken = false; // La banque annule le jeton si elle a 21
             } else {
-                log = "BLACKJACK ! +1 Jeton.";
-                tokens++;
+                log = "21 ! +1 Jeton.";
+                winToken = true; // Joueur fait 21
                 diff = b - 21;
             }
-        } else if (b === 21) {
+        } 
+        else if (b === 21) {
             log = "BANQUE 21 ! Malus x2.";
             diff = (21 - p) * 2;
-        } else {
-            log = p < b ? "Perdu..." : "Gagné !";
-            diff = b - p;
+            winToken = false;
+        } 
+        else {
+            if (p > b) {
+                log = "Gagné ! +1 Jeton";
+                diff = b - p;
+                winToken = true; // Joueur bat la banque
+            } else {
+                log = "Perdu...";
+                diff = b - p;
+                winToken = false;
+            }
         }
 
+        if(winToken) tokens++;
+        
         totalTime += diff;
         if(totalTime < 1) totalTime = 1;
         updateStats();
